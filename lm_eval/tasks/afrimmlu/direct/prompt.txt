@@ -3,9 +3,9 @@ You are a highly knowledgeable and intelligent artificial intelligence model ans
 Question: {question}
 
 Choices:
-        A: {choice1}
-        B: {choice2}
-        C: {choice3}
-        D: {choice4}
+    A: {choice1}
+    B: {choice2}
+    C: {choice3}
+    D: {choice4}
 
 Answer:  
