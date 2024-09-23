@@ -2,6 +2,6 @@
 dataset_name: ig
 doc_to_text: "You are an assistant able to detect sentiment in movie reviews. \n\nGiven\
   \ the sentiment labels Positive or Negative; what is the sentiment of the\
-  \ Igbo statement below? Return only the labels\n\Review: {{review}}"
+  \ Igbo statement below? Return only the labels\n\nReview: {{review}}"
 include: nollysenti
 task: nollysenti_ibo_prompt_3

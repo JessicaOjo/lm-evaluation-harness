@@ -2,6 +2,6 @@
 dataset_name: yo
 doc_to_text: "You are an assistant able to detect sentiment in movie reviews. \n\nGiven\
   \ the sentiment labels Positive or Negative; what is the sentiment of the\
-  \ Yoruba statement below? Return only the labels\n\Review: {{review}}"
+  \ Yoruba statement below? Return only the labels\n\nReview: {{review}}"
 include: nollysenti
 task: nollysenti_yor_prompt_3
