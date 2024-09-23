@@ -2,6 +2,6 @@
 dataset_name: ha
 doc_to_text: "You are an assistant able to detect sentiment in movie reviews. \n\nGiven\
   \ the sentiment labels Positive or Negative; what is the sentiment of the\
-  \ Hausa statement below? Return only the labels\n\nReview: {{review}}"
+  \ Hausa statement below? Return only the labels\n\nReview: {{review}}\n"
 include: nollysenti
 task: nollysenti_hau_prompt_3

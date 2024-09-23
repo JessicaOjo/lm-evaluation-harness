@@ -2,6 +2,6 @@
 dataset_name: en
 doc_to_text: "You are an assistant able to detect sentiment in movie reviews. \n\nGiven\
   \ the sentiment labels Positive or Negative; what is the sentiment of the\
-  \ English statement below? Return only the labels\n\nReview: {{review}}"
+  \ English statement below? Return only the labels\n\nReview: {{review}}\n"
 include: nollysenti
 task: nollysenti_eng_prompt_3
