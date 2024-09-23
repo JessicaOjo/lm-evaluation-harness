@@ -10,8 +10,8 @@ fewshot_split: validation
 doc_to_text: 'Does this movie description; "{{review}}" have a Positive or Negative sentiment? Labels only'
 doc_to_target: label
 doc_to_choice:
-    - "negative"
     - "positive"
+    - "negative"
 should_decontaminate: true
 doc_to_decontamination_query: review
 metric_list:
