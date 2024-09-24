@@ -1,4 +1,5 @@
 dataset_name: kin
+doc_to_text: Does this Kinyarwanda statement; '{{tweet}}' have a Neutral, Positive
+  or Negative sentiment? Labels only
 include: afrisenti
-doc_to_text: 'Does this Kinyarwanda statement; "{{tweet}}" have a Neutral, Positive or Negative sentiment? Labels only'
 task: afrisenti_kin_prompt_2
