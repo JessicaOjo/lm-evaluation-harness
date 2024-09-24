@@ -1,5 +1,7 @@
+import os
 from lm_eval.utils import weighted_f1_score
 
+curr_dir = os.path.dirname(os.path.abspath(__file__))
 
 def doc_to_choice(doc):
     choices = eval(doc["choices"])
@@ -7,18 +9,8 @@ def doc_to_choice(doc):
 
 
 def doc_to_text(doc):
-    output = """You are a highly knowledgeable and intelligent artificial intelligence
-                model answers multiple-choice questions about '{subject}'
-
-                Question: '''{question}'''
-
-                Choices:
-                        A: ''{choice1}'''
-                        B: ''{choice2}'''
-                        C: ''{choice3}'''
-                        D: ''{choice4}'''
-
-                Answer:  """
+    with open(os.path.join(curr_dir, "prompt.txt"), "r") as f:
+        output = f.read()
 
     choices = eval(doc["choices"])
     text = output.format(
