@@ -10,15 +10,15 @@ class FunctionTag:
 
 def prompt_func(mode, lang):
     prompt_map = {
-        "prompt_1": "Given the categories science/technology, travel, politics, sports, health, entertainment, or geography; what is '{{text}}' \n\n",
+        "prompt_1": "Given the categories science/technology, travel, politics, sports, health, entertainment, or geography; what category does the text: '{{text}}' belong to: \n\n",
         "prompt_2": f"Does this {lang} topic; "
-                    "'{{text}}' belong to science/technology, travel, politics, sports, health, entertainment, or geography? Labels only\n\n",
+                    "'{{text}}' belong to one of the following categories: science/technology, travel, politics, sports, health, entertainment, or geography? category only\n\n",
         "prompt_3": f"You are an assistant able to classify topics in texts. \n\n"
                     f"Given the categories science/technology, travel, politics, sports, health, entertainment, or geography; what is "
-                    f"the topic of the {lang} statement below? Return only the labels. "
-                    "\n\ntext: {{text}} \nlabel:\n\n",
-        "prompt_4": "Label the following text as science/technology, travel, politics, sports, health, entertainment, or geography. Provide only the label as your "
-                    "response. \n\ntext: {{text}} \nlabel: \n\n",
+                    f"the topic of the {lang} statement below? Return only the category. "
+                    "\n\ntext: {{text}} \category:\n\n",
+        "prompt_4": "Label the following text as science/technology, travel, politics, sports, health, entertainment, or geography. Provide only the category as your "
+                    "response. \n\ntext: {{text}} \category: \n\n",
         "prompt_5": f"You are tasked with performing topic classification on the following {lang} text. "
                     f"For each input, classify the topic as science/technology, travel, politics, sports, health, entertainment, or geography. "
                     f"Use the following guidelines: \n\n "
@@ -30,8 +30,8 @@ def prompt_func(mode, lang):
                     f"entertainment: The text pertains to movies, music, celebrities, or related topics. \n"
                     f"geography: The text involves geographical information, locations, or related topics. \n\n"
                     f"If the text contains multiple topics, choose the dominant topic. "
-                    f"For ambiguous or unclear topics, select the label that best reflects the overall content. "
-                    'Please provide a single classification for each input.\n\ntext: {{text}} \nlabel: \n\n'
+                    f"For ambiguous or unclear topics, select the category that best reflects the overall content. "
+                    'Please provide a single classification for each input.\n\ntext: {{text}} \category: \n\n'
     }
     return prompt_map[mode]
 
@@ -47,6 +47,7 @@ def gen_lang_yamls(output_dir: str, overwrite: bool, mode: str) -> None:
     languages = {
         "afr": "Afrikaans",
         "amh": "Amharic",
+        "ara": "Arabic",
         "ary": "Moroccan Arabic",
         "arz": "Egyptian Arabic",
         "bam": "Bambara",
@@ -58,7 +59,7 @@ def gen_lang_yamls(output_dir: str, overwrite: bool, mode: str) -> None:
         "ibo": "Igbo",
         "kin": "Kinyarwanda",
         "lin": "Lingala",
-        "orm": "Oromo",
+        "por": "Portuguese",
         "sna": "Shona",
         "som": "Somali",
         "swa": "Swahili",
@@ -69,6 +70,35 @@ def gen_lang_yamls(output_dir: str, overwrite: bool, mode: str) -> None:
         "yor": "Yoruba",
         "zul": "Zulu"
     }
+
+    lang_2_dataset_lang_code = {
+        "afr" : "afr_Latn",
+        "amh" : "amh_Ethi",
+        "ara" : "ara_Arab",
+        "ary" : "ary_Arab",
+        "arz" : "arz_Arab",
+        "bam" : "bam_Latn",
+        "eng" : "eng_Latn",
+        "ewe" : "ewe_Latn",
+        "fon" : "fon_Latn",
+        "fra" : "fra_Latn",
+        "hau" : "hau_Latn",
+        "ibo" : "ibo_Latn",
+        "kin" : "kin_Latn",
+        "lin" : "lin_Latn",
+        "por" : "por_Latn",
+        "sna" : "sna_Latn",
+        "som" : "som_Latn",
+        "swa" : "swh_Latn",
+        "tir" : "tir_Ethi",
+        "tso" : "tso_Latn",
+        "twi" : "twi_Latn",
+        "xho" : "xho_Latn",
+        "yor" : "yor_Latn",
+        "zul" : "zul_Latn"
+    }
+
+
     for lang in languages.keys():
         try:
             file_name = f"sib_{lang}.yaml"
@@ -77,7 +107,7 @@ def gen_lang_yamls(output_dir: str, overwrite: bool, mode: str) -> None:
             yaml_details = {
                     "include": yaml_template,
                     "task": task_name,
-                    "dataset_name": lang,
+                    "dataset_name": lang_2_dataset_lang_code[lang],
                     "doc_to_text": prompt_func(mode, languages[lang])
                 }
             file_path = os.path.join(output_dir, mode)
