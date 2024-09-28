@@ -10,7 +10,31 @@ class FunctionTag:
 
 def prompt_func(mode, lang):
     prompt_map = {
-        "prompt_1": "Question: {{question_lang}}\nContexxt: {{context}}\nAnswer:",
+        "prompt_1": "Your task is to answer a question given a context."
+                    "Make sure you respond with the shortest span containing the answer in the context.\n"
+                    "Question: {{question_lang}}\n"
+                    "Context: {{context}}\n"
+                    "Answer:",
+        "prompt_2": f"Your task is to answer a question given a context. The question is in {lang}, while the context is in English or French."
+                    "Make sure you respond with the shortest span in the context that contains the answer.\n"
+                    "Question: {{question_lang}}\n"
+                    "Context: {{context}}\n"
+                    "Answer:",
+        "prompt_3": "Given the context, provide the answer to the following question."
+                    "Ensure your response is concise and directly from the context.\n"
+                    "Question: {{question_lang}}\n"
+                    "Context: {{context}}\n"
+                    "Answer:",
+        "prompt_4": "You are an AI assistant and your task is to answer the question based on the provided context."
+                    "Your answer should be the shortest span that contains the answer within the context.\n"
+                    "Question: {{question_lang}}\n"
+                    "Context: {{context}}\n"
+                    "Answer:",
+        "prompt_5": "Using the context, find the answer to the question."
+                    "Respond with the briefest span that includes the answer from the context.\n"
+                    "Question: {{question_lang}}\n"
+                    "Context: {{context}}\n"
+                    "Answer:"
     }
     return prompt_map[mode]
 
