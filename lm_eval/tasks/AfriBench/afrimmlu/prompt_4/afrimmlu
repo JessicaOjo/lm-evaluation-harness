@@ -1,6 +1,5 @@
 group:
-  - afrimmlu
-  - afrimmlu_direct
+  - afribench
 task: null
 dataset_path: masakhane/afrimmlu
 dataset_name: null

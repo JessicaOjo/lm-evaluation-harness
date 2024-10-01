@@ -1,5 +1,4 @@
 group:
-    - afrixnli
     - afribench
 dataset_path: masakhane/afrixnli
 dataset_name: null
