@@ -2,39 +2,13 @@ import argparse
 import os
 import yaml
 
-
-class FunctionTag:
-    def __init__(self, value):
-        self.value = value
-
-
 def prompt_func(mode, lang):
     prompt_map = {
-        "prompt_1": "Your task is to answer a question given a context."
-                    "Make sure you respond with the shortest span containing the answer in the context.\n"
-                    "Question: {{question_lang}}\n"
-                    "Context: {{context}}\n"
-                    "Answer:",
-        "prompt_2": f"Your task is to answer a question given a context. The question is in {lang}, while the context is in English or French."
-                    "Make sure you respond with the shortest span in the context that contains the answer.\n"
-                    "Question: {{question_lang}}\n"
-                    "Context: {{context}}\n"
-                    "Answer:",
-        "prompt_3": "Given the context, provide the answer to the following question."
-                    "Ensure your response is concise and directly from the context.\n"
-                    "Question: {{question_lang}}\n"
-                    "Context: {{context}}\n"
-                    "Answer:",
-        "prompt_4": "You are an AI assistant and your task is to answer the question based on the provided context."
-                    "Your answer should be the shortest span that contains the answer within the context.\n"
-                    "Question: {{question_lang}}\n"
-                    "Context: {{context}}\n"
-                    "Answer:",
-        "prompt_5": "Using the context, find the answer to the question."
-                    "Respond with the briefest span that includes the answer from the context.\n"
-                    "Question: {{question_lang}}\n"
-                    "Context: {{context}}\n"
-                    "Answer:"
+        "prompt_1": "P: {{flores_passage}}\nQ: {{question.strip()}}\nA: {{mc_answer1}}\nB: {{mc_answer2}}\nC: {{mc_answer3}}\nD: {{mc_answer4}}\nPlease choose the correct answer from the options above:",
+        "prompt_2": "Passage: {{flores_passage}}\nQuestion: {{question.strip()}}\n1: {{mc_answer1}}\n2: {{mc_answer2}}\n3: {{mc_answer3}}\n4: {{mc_answer4}}\nPlease select the correct answer from the given choices:",
+        "prompt_3": "Context: {{flores_passage}}\nQuery: {{question.strip()}}\nOption A: {{mc_answer1}}\nOption B: {{mc_answer2}}\nOption C: {{mc_answer3}}\nOption D: {{mc_answer4}}\nPlease indicate the correct option from the list above:",
+        "prompt_4": "{{flores_passage}}\nBased on the above passage, answer the following question:\n{{question.strip()}}\nChoices:\nA) {{mc_answer1}}\nB) {{mc_answer2}}\nC) {{mc_answer3}}\nD) {{mc_answer4}}\nPlease provide the correct answer from the choices given:",
+        "prompt_5": "Read the passage: {{flores_passage}}\nThen answer the question: {{question.strip()}}\nOptions:\nA. {{mc_answer1}}\nB. {{mc_answer2}}\nC. {{mc_answer3}}\nD. {{mc_answer4}}\nPlease choose the correct option from the above list:"
     }
     return prompt_map[mode]
 
@@ -48,28 +22,61 @@ def gen_lang_yamls(output_dir: str, overwrite: bool, mode: str) -> None:
     """
     err = []
     languages = {
-            "bem": "Bemba",
-            "fon": "Fon",
-            "hau": "Hausa",
-            "ibo": "Igbo",
-            "kin": "Kinyarwanda",
-            "swa": "Swahili",
-            "twi": "Twi",
-            "wol": "Wolof",
-            "yor": "Yoruba",
-            "zul": "Zulu"
-        }
+        "afr": "Afrikaans",
+        "amh": "Amharic",
+        "ary": "Moroccan Arabic",
+        "arz": "Egyptian Arabic",
+        "bam": "Bambara",
+        "eng": "English",
+        "fra": "French",
+        "hau": "Hausa",
+        "ibo": "Igbo",
+        "lin": "Lingala",
+        "por": "Portuguese",
+        "sna": "Shona",
+        "swa": "Swahili",
+        "tir": "Tigrinya",
+        "tso": "Tsonga",
+        "tsn": "Tswana",
+        "wol": "Wolof",
+        "xho": "Xhosa",
+        "yor": "Yoruba",
+        "zul": "Zulu"
+    }
+
+    lang_2_dataset_lang_code = {
+        "afr" : "afr_Latn",
+        "amh" : "amh_Ethi",
+        "ary" : "ary_Arab",
+        "arz" : "arz_Arab",
+        "bam" : "bam_Latn",
+        "eng" : "eng_Latn",
+        "fra" : "fra_Latn",
+        "hau" : "hau_Latn",
+        "ibo" : "ibo_Latn",
+        "lin" : "lin_Latn",
+        "por" : "por_Latn",
+        "sna" : "sna_Latn",
+        "swa" : "swh_Latn",
+        "tir" : "tir_Ethi",
+        "tso" : "tso_Latn",
+        "tsn" : "tsn_Latn",
+        "wol" : "wol_Latn",
+        "xho" : "xho_Latn",
+        "yor" : "yor_Latn",
+        "zul" : "zul_Latn"
+    }
 
 
     for lang in languages.keys():
         try:
-            file_name = f"afriqa_{lang}.yaml"
-            task_name = f"afriqa_{lang}_{mode}"
-            yaml_template = f"afriqa"
+            file_name = f"belebele_{lang}.yaml"
+            task_name = f"belebele_{lang}_{mode}"
+            yaml_template = f"belebele"
             yaml_details = {
                     "include": yaml_template,
                     "task": task_name,
-                    "dataset_name": lang,
+                    "dataset_name": lang_2_dataset_lang_code[lang],
                     "doc_to_text": prompt_func(mode, languages[lang])
                 }
             file_path = os.path.join(output_dir, mode)
