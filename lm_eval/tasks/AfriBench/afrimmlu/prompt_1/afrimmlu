@@ -1,5 +1,4 @@
 group:
-  - mmlu
   - afribench
 task: null
 dataset_path: masakhane/afrimmlu
