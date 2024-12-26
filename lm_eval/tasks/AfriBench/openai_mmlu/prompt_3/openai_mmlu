@@ -1,7 +1,7 @@
 group:
   - afribench
 task: null
-dataset_path: Davlan/NaijaRC
+dataset_path: openai/MMMLU
 dataset_name: null
 output_type: multiple_choice
 test_split: test
@@ -9,7 +9,7 @@ fewshot_config:
   sampler: first_n
 doc_to_target: "{{['A', 'B', 'C', 'D'].index(Answer.strip())}}"
 should_decontaminate: true
-doc_to_decontamination_query: "{{question}}"
+doc_to_decontamination_query: "{{Question}}"
 doc_to_choice: ["A", "B", "C", "D"]
 metric_list:
   - metric: acc
