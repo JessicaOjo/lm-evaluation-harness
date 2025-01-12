@@ -1,0 +1,3 @@
+dataset_name: lin
+include: afrimmlu_math
+task: afrimmlu_math_lin
