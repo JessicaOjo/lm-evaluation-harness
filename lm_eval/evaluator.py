@@ -1,6 +1,7 @@
 import itertools
 import json
 import logging
+import os
 import random
 import time
 from collections import defaultdict
@@ -26,16 +27,15 @@ from lm_eval.evaluator_utils import (
 )
 from lm_eval.loggers import EvaluationTracker
 from lm_eval.loggers.utils import add_env_info, add_tokenizer_info, get_git_commit_hash
-from lm_eval.tasks import (
-    TaskManager,
-    get_task_dict,
-)
+from lm_eval.tasks import TaskManager, get_task_dict
 from lm_eval.utils import (
     handle_non_serializable,
+    hash_dict_images,
     hash_string,
     positional_deprecated,
     setup_logging,
     simple_parse_args_string,
+    wrap_text,
 )
 
 
@@ -60,6 +60,7 @@ def simple_evaluate(
     rewrite_requests_cache: bool = False,
     delete_requests_cache: bool = False,
     limit: Optional[Union[int, float]] = None,
+    samples: Optional[dict] = None,
     bootstrap_iters: int = 100000,
     check_integrity: bool = False,
     write_out: bool = False,
@@ -106,6 +107,8 @@ def simple_evaluate(
         Deletes all the request cache if set to `True`. `None` if not desired.
     :param limit: int or float, optional
         Limit the number of examples per task (only use this for testing), If <1, limit is a percentage of the total number of examples.
+    :param samples: dictionary, optional
+        Dictionary indicating which examples should be tested in each task, e.g., {"mmlu_astronomy":[0,3,6],"mmlu_anatomy":[1,4,7,10]}.
     :param bootstrap_iters:
         Number of iterations for bootstrap statistics, used when calculating stderrs. set to 0 for no stderr calculations to be performed.
     :param check_integrity: bool
@@ -140,7 +143,6 @@ def simple_evaluate(
         Random seed for fewshot sampler random generator. If set to None, the seed of generator will be set to None.
     :param metadata: dict
         Additional metadata to be added to the task manager. Will get passed to the download function of the task.
-
     return
         Dictionary of results
     """
@@ -148,11 +150,31 @@ def simple_evaluate(
         setup_logging(verbosity=verbosity)
     start_date = time.time()
 
-    if isinstance(model_args, str) and (
-        "instruct" in model_args and not apply_chat_template
-    ):
+    if limit is not None and samples is not None:
+        raise ValueError(
+            "Either 'limit' or 'samples' must be None, but both are not None."
+        )
+
+    _NEEDS_CHAT_TEMPLATE = ("inst", "chat")
+    if (
+        (
+            isinstance(model_args, str)
+            and any(kw in model_args.lower() for kw in _NEEDS_CHAT_TEMPLATE)
+        )
+        or (
+            isinstance(model_args, dict)
+            and any(
+                any(kw in str(v).lower() for kw in _NEEDS_CHAT_TEMPLATE)
+                for v in model_args.values()
+            )
+        )
+    ) and not apply_chat_template:
         eval_logger.warning(
-            "Instruct model detected, but chat template not applied. Recommend setting `apply_chat_template` (optionally `fewshot_as_multiturn`)."
+            wrap_text(
+                f"""pretrained={model_args.get("pretrained") if isinstance(model_args, dict) else model_args} appears to be an
+                instruct or chat variant but chat template is not applied.
+                Recommend setting `apply_chat_template` (optionally `fewshot_as_multiturn`).""",
+            )
         )
 
     if delete_requests_cache:
@@ -216,7 +238,9 @@ def simple_evaluate(
 
         else:
             eval_logger.info(
-                f"Initializing {model} model, with arguments: {simple_parse_args_string(model_args)}"
+                wrap_text(
+                    f"Initializing {model} model, with arguments: {simple_parse_args_string(model_args)}"
+                )
             )
             lm = lm_eval.api.registry.get_model(model).create_from_arg_string(
                 model_args,
@@ -334,6 +358,7 @@ def simple_evaluate(
         lm=lm,
         task_dict=task_dict,
         limit=limit,
+        samples=samples,
         cache_requests=cache_requests,
         rewrite_requests_cache=rewrite_requests_cache,
         bootstrap_iters=bootstrap_iters,
@@ -396,6 +421,7 @@ def evaluate(
     lm: "LM",
     task_dict,
     limit: Optional[int] = None,
+    samples: Optional[dict] = None,
     cache_requests: bool = False,
     rewrite_requests_cache: bool = False,
     bootstrap_iters: Optional[int] = 100000,
@@ -415,6 +441,8 @@ def evaluate(
         Dictionary of tasks. Tasks will be taken to have name type(task).config.task .
     :param limit: int, optional
         Limit the number of examples per task (only use this for testing)
+    :param samples: dictionary, optional
+        Dictionary indicating which examples should be tested in each task, e.g., {"mmlu_astronomy":[0,3,6],"mmlu_anatomy":[1,4,7,10]}.
     :param cache_requests: bool, optional
         Speed up evaluation by caching the building of dataset requests.
     :param rewrite_requests_cache: bool, optional
@@ -442,11 +470,16 @@ def evaluate(
         Dictionary of results
     """
 
+    if limit is not None and samples is not None:
+        raise ValueError(
+            "Either 'limit' or 'samples' must be None, but both are not None."
+        )
+    if samples is not None:
+        eval_logger.info(f"Evaluating examples for tasks {list(samples.keys())}")
     if apply_chat_template:
         eval_logger.warning(
             "Chat template formatting change affects loglikelihood and multiple-choice tasks. See docs/chat-template-readme.md for details."
         )
-
     # tracks all Instances/requests a model must generate output on.
     requests = defaultdict(list)
     # stores the amount to pad out reqs per req. type so that
@@ -469,7 +502,7 @@ def evaluate(
     for task_output in eval_tasks:
         task: Task = task_output.task
 
-        if getattr(lm, "MULTIMODAL", False) != getattr(task, "MULTIMODAL", False):
+        if getattr(task, "MULTIMODAL", False) and not getattr(lm, "MULTIMODAL", False):
             incompatible_tasks.append(task_output.task_name)
         elif getattr(task, "UNSAFE_CODE", False) and not confirm_run_unsafe_code:
             raise ValueError(
@@ -479,10 +512,6 @@ def evaluate(
         if not getattr(lm, "MULTIMODAL", False):
             raise ValueError(
                 f"Attempted to run tasks: {incompatible_tasks} which require multimodal input, but the selected model type does not currently implement this. Multimodal support is currently restricted to the ['hf-multimodal', 'vllm-vlm'] model type."
-            )
-        else:
-            raise ValueError(
-                f"Attempted to run tasks: {incompatible_tasks} which are text-only, but used a model type which only currently supports multimodal tasks."
             )
     # end validation check
 
@@ -496,6 +525,9 @@ def evaluate(
         limits.append(limit)
         task.build_all_requests(
             limit=limit,
+            samples=samples.get(task_output.task_name, None)
+            if samples is not None
+            else samples,
             rank=lm.rank,
             world_size=lm.world_size,
             cache_requests=cache_requests,
@@ -579,10 +611,22 @@ def evaluate(
             instances.sort(key=lambda x: x.idx)
         # iterate over different filters used
         for filter_key in task.instances[0].filtered_resps.keys():
+            indices = (
+                samples.get(task_output.task_name, None)
+                if samples is not None
+                else None
+            )
             doc_iterator = task.doc_iterator(
-                rank=RANK, limit=limit, world_size=WORLD_SIZE
+                rank=RANK,
+                limit=limit,
+                world_size=WORLD_SIZE,
+                samples=indices,
             )
             for doc_id, doc in doc_iterator:
+                if indices:
+                    doc_id_true = indices[doc_id]
+                else:
+                    doc_id_true = doc_id
                 requests = instances_by_doc_id[doc_id]
                 metrics = task.process_results(
                     doc, [req.filtered_resps[filter_key] for req in requests]
@@ -590,7 +634,7 @@ def evaluate(
                 if log_samples:
                     target = task.doc_to_target(doc)
                     example = {
-                        "doc_id": doc_id,
+                        "doc_id": doc_id_true,
                         "doc": doc,
                         "target": target,
                         "arguments": [req.args for req in requests],
@@ -718,6 +762,13 @@ def evaluate(
             },
         }
         if log_samples:
+            # default: hash images
+            samples = (
+                hash_dict_images(samples)
+                if os.environ.get("LMEVAL_HASHMM", "1") != "0"
+                and (hasattr(lm, "MULTIMODAL"))
+                else samples
+            )
             results_dict["samples"] = dict(samples)
 
         return results_dict

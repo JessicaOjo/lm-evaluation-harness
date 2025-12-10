@@ -4,17 +4,8 @@ import logging
 import os
 import sys
 from functools import partial
+from pathlib import Path
 from typing import Union
-
-from lm_eval import evaluator, utils
-from lm_eval.evaluator import request_caching_arg_to_dict
-from lm_eval.loggers import EvaluationTracker, WandbLogger
-from lm_eval.tasks import TaskManager
-from lm_eval.utils import (
-    handle_non_serializable,
-    make_table,
-    simple_parse_args_string,
-)
 
 
 def try_parse_json(value: str) -> Union[str, dict, None]:
@@ -134,7 +125,7 @@ def setup_parser() -> argparse.ArgumentParser:
         default=None,
         type=str,
         metavar="DIR|DIR/file.json",
-        help="The path to the output file where the result metrics will be saved. If the path is a directory and log_samples is true, the results will be saved in the directory. Else the parent directory will be used.",
+        help="Path where result metrics will be saved. Can be either a directory or a .json file. If the path is a directory and log_samples is true, the results will be saved in the directory. Else the parent directory will be used.",
     )
     parser.add_argument(
         "--limit",
@@ -144,6 +135,14 @@ def setup_parser() -> argparse.ArgumentParser:
         metavar="N|0<N<1",
         help="Limit the number of examples per task. "
         "If <1, limit is a percentage of the total number of examples.",
+    )
+    parser.add_argument(
+        "--samples",
+        "-E",
+        default=None,
+        type=str,
+        metavar="/path/to/json",
+        help='JSON string or path to JSON file containing doc indices of selected examples to test. Format: {"task_name":[indices],...}',
     )
     parser.add_argument(
         "--use_cache",
@@ -305,6 +304,17 @@ def cli_evaluate(args: Union[argparse.Namespace, None] = None) -> None:
         parser = setup_parser()
         args = parse_eval_args(parser)
 
+    # defer loading `lm_eval` submodules for faster CLI load
+    from lm_eval import evaluator, utils
+    from lm_eval.evaluator import request_caching_arg_to_dict
+    from lm_eval.loggers import EvaluationTracker, WandbLogger
+    from lm_eval.tasks import TaskManager
+    from lm_eval.utils import (
+        handle_non_serializable,
+        make_table,
+        simple_parse_args_string,
+    )
+
     if args.wandb_args:
         wandb_args_dict = simple_parse_args_string(args.wandb_args)
         wandb_config_args_dict = simple_parse_args_string(args.wandb_config_args)
@@ -360,6 +370,14 @@ def cli_evaluate(args: Union[argparse.Namespace, None] = None) -> None:
             " --limit SHOULD ONLY BE USED FOR TESTING."
             "REAL METRICS SHOULD NOT BE COMPUTED USING LIMIT."
         )
+    if args.samples:
+        assert args.limit is None, (
+            "If --samples is not None, then --limit must be None."
+        )
+        if (samples := Path(args.samples)).is_file():
+            args.samples = json.loads(samples.read_text())
+        else:
+            args.samples = json.loads(args.samples)
 
     if args.tasks is None:
         eval_logger.error("Need to specify task to evaluate.")
@@ -415,14 +433,23 @@ def cli_evaluate(args: Union[argparse.Namespace, None] = None) -> None:
         # because it's already been determined based on the prior env var before launching our
         # script--`datasets` gets imported by lm_eval internally before these lines can update the env.
         import datasets
+        from packaging.version import parse as vparse
 
-        datasets.config.HF_DATASETS_TRUST_REMOTE_CODE = True
+        if vparse(datasets.__version__) < vparse("4.0.0"):
+            datasets.config.HF_DATASETS_TRUST_REMOTE_CODE = True
+        else:
+            eval_logger.warning(
+                "trust_remote_code and datasets scripts are no longer supported on datasets>=4.0.0. Skipping. If your task still requires this, please downgrade to datasets==3.6.0 or earlier."
+            )
 
-        args.model_args = args.model_args + ",trust_remote_code=True"
-    eval_logger.info(
-        f"Selected Tasks: {task_names}"
-    ) if eval_logger.getEffectiveLevel() >= logging.INFO else print(
-        f"Selected Tasks: {task_names}"
+        if isinstance(args.model_args, dict):
+            args.model_args["trust_remote_code"] = True
+        else:
+            args.model_args = args.model_args + ",trust_remote_code=True"
+    (
+        eval_logger.info(f"Selected Tasks: {task_names}")
+        if eval_logger.getEffectiveLevel() >= logging.INFO
+        else print(f"Selected Tasks: {task_names}")
     )
 
     request_caching_args = request_caching_arg_to_dict(
@@ -439,6 +466,7 @@ def cli_evaluate(args: Union[argparse.Namespace, None] = None) -> None:
         device=args.device,
         use_cache=args.use_cache,
         limit=args.limit,
+        samples=args.samples,
         check_integrity=args.check_integrity,
         write_out=args.write_out,
         log_samples=args.log_samples,
